@@ -6,10 +6,14 @@ const authRouter = require('./routes/admin/auth');
 
 const app = express();
 
+app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieSession({
-    keys: ['lkdASju3V88FGwefTbd729dnf4nsDFF8dj9']
-}));
+app.use(
+    cookieSession({
+        keys: ['lkdASju3V88FGwefTbd729dnf4nsDFF8dj9']
+    })
+);
+
 app.use(authRouter);
 
 app.listen(3000, () => {
