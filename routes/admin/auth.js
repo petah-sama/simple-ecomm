@@ -5,45 +5,34 @@ const usersRepo = require('../../repositories/users');
 const signupTemplate = require('../../views/admin/auth/signup');
 const signinTemplate = require('../../views/admin/auth/signin');
 
+const { requireEmail, requirePassword, requirePasswordConfirmation } = require('./validators');
+
 const router = express.Router();
 
 router.get('/signup', (req, res) => {
     res.send(signupTemplate({ req }));
 });
 
-router.post('/signup', [
-    check('email')
-        .trim()
-        .normalizeEmail()
-        .isEmail(),
-    check('password')
-        .trim()
-        .isLength({ min: 4, max: 20 }),
-    check('passwordConfirmation')
-        .trim()
-        .isLength({ min: 4, max: 20 })
-], async (req, res) => {
-    const errors = validationResult(req);
+router.post(
+    '/signup',
+    [requireEmail, requirePassword, requirePasswordConfirmation],
+    async (req, res) => {
+        const errors = validationResult(req);
 
-    const { email, password, passwordConfirmation } = req.body;
+        if (!errors.isEmpty()) {
+            return res.send(signupTemplate({ req, errors }));
+        }
 
-    const existingUser = await usersRepo.getOneBy({ email });
-    if (existingUser) {
-        return res.send('Email is already registered');
-    }
+        const { email, password, passwordConfirmation } = req.body;
 
-    if (password !== passwordConfirmation) {
-        return res.send('Passwords must match');
-    }
+        // Create an user in our repo to represent this person
+        const user = await usersRepo.create({ email, password });
 
-    // Create an user in our repo to represent this person
-    const user = await usersRepo.create({ email, password });
+        // Store the id of that user inside the users cookie
+        // req.session -> Added by cookie session!!
+        req.session.userId = user.id;
 
-    // Store the id of that user inside the users cookie
-    // req.session -> Added by cookie session!!
-    req.session.userId = user.id;
-
-    res.send('Account created!');
+        res.send('Account created!');
 });
 
 router.get('/signin', (req, res) => {
